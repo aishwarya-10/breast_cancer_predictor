@@ -6,8 +6,6 @@ import base64
 #[Data Transformation]
 import numpy as np
 import pandas as pd
-from scipy.stats import boxcox
-from sklearn.preprocessing import StandardScaler
 
 #[Dashboard]
 import plotly.graph_objects as go
@@ -64,28 +62,9 @@ def get_sidebar_inputs(data):
     return input_dict
 
 
-def get_scaled_data(input_data):
-
-    # Handle non-positive values by adding a small constant
-    # input_data += 1e-6
-
-    # Apply Box-Cox transformation
-    transformed_data, lambda_value = boxcox(input_data)
-
-    # scaler = StandardScaler()
-
-    # fitted_data = scaler.fit(input_data)
-    # transformed_data = scaler.transform(fitted_data)
-    # print(transformed_data)
-    # Reshape to 1-D array
-    scaled_data = transformed_data.reshape(1, -1)
-
-    return scaled_data
-
-
 def get_scaled_values(input_dict):
   
-    data = pd.read_csv("Data/processed_data.csv")
+    data = pd.read_csv("Data/processed_data1.csv")
 
     x = data.drop(['diagnosis'], axis=1)
     scaled_dict = {}
@@ -157,22 +136,27 @@ def get_radar_chart(input_data):
 
 
 def predict_cancer(input_features):
-    model = pickle.load(open("Model/breast_cancer.pkl", "rb"))
+    model = pickle.load(open("Model/breast_cancer_rf_smote.pkl", "rb"))
 
-    # input_array = np.array(list(input_features.values())).reshape(1, -1)
-    input_array = list(input_features.values())
+    input_array = np.array(list(input_features.values())).reshape(1, -1)
 
-    input_scaled = get_scaled_data(input_array)
-
-    prediction = model.predict(input_scaled)
+    prediction = model.predict(input_array)
 
     if prediction[0] == 1:
-        st.write("Benign")
+        st.markdown("""
+            <div style="background-color: green; border:2px solid #ccc; border-radius:15px; padding:2px 10px; width:80px; height: 36px; margin-bottom: 16px;">
+            <p style="color:#ffffff; font-weight:bold; font-size:18px;">Benign</p>
+            </div>
+            """, unsafe_allow_html=True)
     else:
-        st.write("Malignant")
+        st.markdown("""
+            <div style="background-color: red; border:2px solid #ccc; border-radius:15px; padding:2px 10px; width:105px; height: 36px; margin-bottom: 16px;">
+            <p style="color:#ffffff; font-weight:bold; font-size:18px;">Malignant</p>
+            </div>
+            """, unsafe_allow_html=True)
         
-    st.write("Probability of being benign: ", model.predict_proba(input_scaled)[0][1])
-    st.write("Probability of being malignant: ", model.predict_proba(input_scaled)[0][0])
+    st.write("Probability of being benign: ", round(model.predict_proba(input_array)[0][1], 4))
+    st.write("Probability of being malignant: ", round(model.predict_proba(input_array)[0][0], 4))
 
 
 # ==================================================       /     CUSTOMIZATION    /      =================================================== #
@@ -187,29 +171,47 @@ st.set_page_config(
 # Title
 st.title(":pink[Machine Learning-based Breast Cancer Prediction]")
 
-
-@st.cache_data
-def get_img_as_base64(file):
-    with open(file, "rb") as f:
-        data = f.read()
-    return base64.b64encode(data).decode()
+# Intro
+st.write("""Decision support for health professionals in biopsy procedure. This app uses machine learning models to 
+         predict whether a breast mass is Benign or Malignant using cell measurements. Update measurements in the 
+         sidebar to get started.""")
 
 
 # ==================================================       /     MODEL    /      =================================================== #
 # Get data
-data = pd.read_csv("Data/processed_data.csv")
+data = pd.read_csv("Data/processed_data1.csv")
 
 input_features = get_sidebar_inputs(data)
 
 # Display results
-col1, col2 = st.columns([4, 2])
+col1, col2 = st.columns([4, 2], gap= "medium")
 
 with col1:
     chart = get_radar_chart(input_features)
     st.plotly_chart(chart)
 
 with col2:
-    predict_cancer(input_features)
+    st.write("")
+    st.write("")
+    st.write("")
+    st.write("")
+    st.write("")
+    st.write("")
+
+    with stylable_container(
+        key= "results",
+        css_styles= """
+             {
+                background-color: blue;
+                color: black;
+                border-radius: 20px;
+                padding: 10px;
+                background-image: linear-gradient(90deg, #ee9ca7 0%, #ffdde1 100%);       
+            }
+            """
+    ):
+        st.subheader("Cell Prediction:")
+        predict_cancer(input_features)
 
 
 # streamlit run app.py
